@@ -94,7 +94,7 @@ export default function Hero() {
       <div className="lg:hidden">
         <div className="relative w-full aspect-[500/400] bg-blue-light">
           <Image
-            src={`/images/hero-banner${suffix}.png`}
+            src={`/images/hero-banner${suffix}.jpg`}
             alt="OKA Nutrition DHT Control"
             fill
             className="object-contain"
