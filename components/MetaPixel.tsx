@@ -16,8 +16,19 @@ export default function MetaPixel() {
         t.src=v;s=b.getElementsByTagName(e)[0];
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
+
         fbq('init', '${META_PIXEL_ID}');
         fbq('track', 'PageView');
+
+        var path = window.location.pathname;
+        if (path === '/' || path === '/ar' || path === '/ar/') {
+          fbq('track', 'ViewContent', {
+            content_name: 'OKA DHT Control',
+            content_ids: ['dht-control'],
+            content_type: 'product',
+            currency: 'MAD'
+          });
+        }
       `}
     </Script>
   );

@@ -3,7 +3,7 @@
 import { useOrder } from '@/context/OrderContext';
 import { useLocale } from '@/context/LocaleContext';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 type Offer = {
   id: string;
@@ -21,17 +21,45 @@ type FormData = {
   address: string;
 };
 
+function trackMeta(eventName: string, params: Record<string, unknown>, eventId?: string) {
+  if (typeof window === 'undefined' || !(window as any).fbq) return;
+
+  if (eventId) {
+    (window as any).fbq('track', eventName, params, { eventID: eventId });
+    return;
+  }
+
+  (window as any).fbq('track', eventName, params);
+}
+
 export default function OrderModal() {
   const { isOpen, selectedOffer, closeModal } = useOrder();
   const { dict, locale } = useLocale();
   const suffix = locale === 'ar' ? '-ar' : '';
   const [step, setStep] = useState<'offers' | 'form' | 'whatsapp' | 'success'>('offers');
   const [chosenOffer, setChosenOffer] = useState<Offer | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const trackedCheckoutOfferRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (isOpen && selectedOffer) {
       setChosenOffer(selectedOffer);
       setStep('form');
+      setSubmitError('');
+
+      if (trackedCheckoutOfferRef.current !== selectedOffer.id) {
+        const quantity = selectedOffer.id === 'offre-2' ? 3 : 1;
+        trackMeta('InitiateCheckout', {
+          content_name: selectedOffer.title,
+          content_ids: [selectedOffer.id],
+          content_type: 'product',
+          num_items: quantity,
+          value: selectedOffer.price,
+          currency: 'MAD',
+        });
+        trackedCheckoutOfferRef.current = selectedOffer.id;
+      }
     }
   }, [isOpen, selectedOffer]);
 
@@ -67,12 +95,29 @@ export default function OrderModal() {
     setStep('offers');
     setChosenOffer(null);
     setFormData({ name: '', phone: '', city: '', address: '' });
+    setIsSubmitting(false);
+    setSubmitError('');
+    trackedCheckoutOfferRef.current = null;
     closeModal();
   };
 
   const handleSelectOffer = (offer: Offer) => {
     setChosenOffer(offer);
     setStep('form');
+    setSubmitError('');
+
+    if (trackedCheckoutOfferRef.current !== offer.id) {
+      const quantity = offer.id === 'offre-2' ? 3 : 1;
+      trackMeta('InitiateCheckout', {
+        content_name: offer.title,
+        content_ids: [offer.id],
+        content_type: 'product',
+        num_items: quantity,
+        value: offer.price,
+        currency: 'MAD',
+      });
+      trackedCheckoutOfferRef.current = offer.id;
+    }
   };
 
   const handleChange = (field: keyof FormData, value: string) => {
@@ -87,40 +132,72 @@ export default function OrderModal() {
 
   const quantityFor = (offer: Offer) => (offer.id === 'offre-2' ? 3 : 1);
 
-  // Single submit: always saves exactly one order row, then asks about WhatsApp.
   const handleSubmit = async () => {
-    if (!chosenOffer || !isFormValid) return;
+    if (!chosenOffer || !isFormValid || isSubmitting) return;
 
     const quantity = quantityFor(chosenOffer);
+    setIsSubmitting(true);
+    setSubmitError('');
 
-    // Save order to the database (fire and forget — don't block on it)
-    fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: formData.name,
-        phone: formData.phone,
-        city: formData.city,
-        address: formData.address,
-        offerTitle: chosenOffer.title,
-        offerDescription: chosenOffer.description,
-        quantity,
-        totalAmount: chosenOffer.price,
-      }),
-    }).catch((err) => console.error('Failed to save order:', err));
-
-    // TikTok pixel: track the order as a conversion event
-    if (typeof window !== 'undefined' && (window as any).ttq) {
-      (window as any).ttq.track('PlaceAnOrder', {
-        content_id: chosenOffer.id,
-        content_name: chosenOffer.title,
-        quantity,
-        value: chosenOffer.price,
-        currency: 'MAD',
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone,
+          city: formData.city,
+          address: formData.address,
+          offerTitle: chosenOffer.title,
+          offerDescription: chosenOffer.description,
+          quantity,
+          totalAmount: chosenOffer.price,
+        }),
       });
-    }
 
-    setStep('whatsapp');
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || 'Order could not be saved');
+      }
+
+      const orderId = result.orderId ? String(result.orderId) : '';
+      const purchaseEventId = orderId ? `oka_order_${orderId}` : undefined;
+
+      // Only count a conversion after the order has actually been saved.
+      if (typeof window !== 'undefined' && (window as any).ttq) {
+        (window as any).ttq.track('PlaceAnOrder', {
+          content_id: chosenOffer.id,
+          content_name: chosenOffer.title,
+          quantity,
+          value: chosenOffer.price,
+          currency: 'MAD',
+        });
+      }
+
+      trackMeta(
+        'Purchase',
+        {
+          content_name: chosenOffer.title,
+          content_ids: [chosenOffer.id],
+          content_type: 'product',
+          num_items: quantity,
+          value: chosenOffer.price,
+          currency: 'MAD',
+        },
+        purchaseEventId
+      );
+
+      setStep('whatsapp');
+    } catch (error) {
+      console.error('Failed to save order:', error);
+      setSubmitError(
+        locale === 'ar'
+          ? 'تعذر تسجيل الطلب. المرجو المحاولة مرة أخرى.'
+          : "Impossible d’enregistrer la commande. Veuillez réessayer."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleWhatsappConfirm = () => {
@@ -273,16 +350,23 @@ export default function OrderModal() {
               </div>
             </div>
 
+            {submitError && (
+              <p className="mt-4 text-sm text-red-600 text-center" role="alert">
+                {submitError}
+              </p>
+            )}
+
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setStep('offers')}
-                className="btn-outline flex-1 py-3"
+                disabled={isSubmitting}
+                className="btn-outline flex-1 py-3 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {dict.orderModal.back}
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!isFormValid}
+                disabled={!isFormValid || isSubmitting}
                 className="btn-primary flex-1 py-3 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {dict.orderModal.confirmOrder}
