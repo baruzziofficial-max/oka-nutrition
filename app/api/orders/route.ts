@@ -12,12 +12,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Missing fields' }, { status: 400 });
     }
 
-    await sql`
+    const result = await sql`
       INSERT INTO orders (name, phone, city, address, offer_title, offer_description, quantity, total_amount, status)
-      VALUES (${name}, ${phone}, ${city}, ${address}, ${offerTitle}, ${offerDescription}, ${quantity}, ${totalAmount}, 'Nouvelle');
+      VALUES (${name}, ${phone}, ${city}, ${address}, ${offerTitle}, ${offerDescription}, ${quantity}, ${totalAmount}, 'Nouvelle')
+      RETURNING id;
     `;
 
-    return NextResponse.json({ ok: true });
+    const orderId = result.rows[0]?.id ?? null;
+
+    return NextResponse.json({ ok: true, orderId });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
