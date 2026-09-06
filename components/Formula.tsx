@@ -28,7 +28,6 @@ export default function Formula() {
               src="/videos/formula-demo.mp4"
               poster={`/images/formula-video-poster${suffix}.jpg`}
               preload="none"
-              preload="none"
               controls
               playsInline
               className="w-full h-full object-cover"
