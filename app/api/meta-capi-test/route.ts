@@ -6,6 +6,10 @@ const META_API_VERSION = 'v23.0';
 const TEST_EVENT_CODE = 'TEST84170';
 const ONE_TIME_KEY = 'oka-capi-test-7f3d9c1a';
 
+function sha256(value: string) {
+  return crypto.createHash('sha256').update(value.trim().toLowerCase()).digest('hex');
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   if (url.searchParams.get('key') !== ONE_TIME_KEY) {
@@ -25,9 +29,10 @@ export async function GET(request: Request) {
         event_time: Math.floor(Date.now() / 1000),
         event_id: eventId,
         action_source: 'website',
-        event_source_url: 'https://okanutrition.com/',
+        event_source_url: 'https://www.okanutrition.com/',
         user_data: {
-          client_user_agent: request.headers.get('user-agent') || 'OpenAI test',
+          em: [sha256('capi-test@okanutrition.com')],
+          client_user_agent: request.headers.get('user-agent') || 'OKA CAPI test',
         },
         custom_data: {
           currency: 'MAD',
