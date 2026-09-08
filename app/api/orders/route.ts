@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { sql, ensureTables } from '@/lib/db';
+import { getCurrentRole } from '@/lib/auth';
 
 const META_PIXEL_ID = '1033463112850233';
 const META_API_VERSION = 'v23.0';
@@ -97,9 +98,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Missing fields' }, { status: 400 });
     }
 
+    const normalizedQuantity = Number(quantity || 1);
+    const normalizedTotal = Number(totalAmount);
+    const isKnownOffer =
+      (normalizedQuantity === 1 && normalizedTotal === 175) ||
+      (normalizedQuantity === 3 && normalizedTotal === 349);
+
+    if (!isKnownOffer) {
+      return NextResponse.json({ ok: false, error: 'Invalid offer' }, { status: 400 });
+    }
+
+    const cleanName = String(name).trim().slice(0, 120);
+    const cleanPhone = String(phone).trim().slice(0, 30);
+    const cleanCity = String(city).trim().slice(0, 120);
+    const cleanAddress = String(address).trim().slice(0, 500);
+    const cleanOfferTitle = String(offerTitle).trim().slice(0, 160);
+    const cleanOfferDescription = String(offerDescription || '').trim().slice(0, 240);
+
     const result = await sql`
       INSERT INTO orders (name, phone, city, address, offer_title, offer_description, quantity, total_amount, status)
-      VALUES (${name}, ${phone}, ${city}, ${address}, ${offerTitle}, ${offerDescription}, ${quantity}, ${totalAmount}, 'Nouvelle')
+      VALUES (${cleanName}, ${cleanPhone}, ${cleanCity}, ${cleanAddress}, ${cleanOfferTitle}, ${cleanOfferDescription}, ${normalizedQuantity}, ${normalizedTotal}, 'Nouvelle')
       RETURNING id;
     `;
 
@@ -110,12 +128,12 @@ export async function POST(req: NextRequest) {
       await sendMetaPurchase({
         req,
         eventId,
-        totalAmount: Number(totalAmount),
-        quantity: Number(quantity || 1),
-        offerTitle,
-        offerDescription,
-        name,
-        phone,
+        totalAmount: normalizedTotal,
+        quantity: normalizedQuantity,
+        offerTitle: cleanOfferTitle,
+        offerDescription: cleanOfferDescription,
+        name: cleanName,
+        phone: cleanPhone,
       });
     } catch (metaError) {
       console.error('Meta CAPI error:', metaError);
@@ -130,9 +148,16 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
+    const role = await getCurrentRole();
+    if (!role) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     await ensureTables();
     const result = await sql`
-      SELECT id, name, phone, city, address, offer_title, offer_description, quantity, total_amount, status, created_at
+      SELECT id, name, phone, city, address, offer_title, offer_description,
+             quantity, total_amount, status, created_at,
+             rapid_tracking_number, rapid_status, rapid_synced_at, rapid_sync_error
       FROM orders
       ORDER BY created_at DESC;
     `;

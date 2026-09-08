@@ -17,6 +17,37 @@ export async function ensureTables() {
     );
   `;
 
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rapid_tracking_number TEXT;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rapid_status TEXT;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rapid_city_id INT;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rapid_shop_id INT;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rapid_synced_at TIMESTAMPTZ;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rapid_sync_started_at TIMESTAMPTZ;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rapid_sync_error TEXT;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rapid_state_date TIMESTAMPTZ;`;
+
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS orders_rapid_tracking_number_unique
+    ON orders (rapid_tracking_number)
+    WHERE rapid_tracking_number IS NOT NULL;
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS rapid_delivery_webhook_events (
+      event_id TEXT PRIMARY KEY,
+      event_name TEXT NOT NULL,
+      received_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS integration_secrets (
+      secret_key TEXT PRIMARY KEY,
+      encrypted_value TEXT NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `;
+
   await sql`
     CREATE TABLE IF NOT EXISTS stock (
       id SERIAL PRIMARY KEY,
@@ -25,7 +56,7 @@ export async function ensureTables() {
     );
   `;
 
-    await sql`
+  await sql`
     INSERT INTO stock (product_name, quantity)
     VALUES ('DHT Control', 100)
     ON CONFLICT (product_name) DO NOTHING;

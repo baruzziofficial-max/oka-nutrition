@@ -11,12 +11,14 @@ const links = [
   { href: '/admin/clients', label: 'Clients' },
   { href: '/admin/stock', label: 'Stock' },
   { href: '/admin/statistiques', label: 'Statistiques' },
+  { href: '/admin/integrations', label: 'Intégrations', bossOnly: true },
 ];
 
 export default function AdminSidebar({ role }: { role: 'worker' | 'boss' }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const visibleLinks = links.filter((link) => !link.bossOnly || role === 'boss');
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -37,7 +39,7 @@ export default function AdminSidebar({ role }: { role: 'worker' | 'boss' }) {
       </div>
 
       <nav className="flex-1 p-3 space-y-1">
-        {links.map((link) => (
+        {visibleLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}

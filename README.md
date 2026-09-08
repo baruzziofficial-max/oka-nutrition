@@ -34,3 +34,20 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Rapide Delivery
+
+Confirmed orders are sent server-side to Rapide Delivery. The tracking number and current
+delivery status are stored with the order and displayed in the admin dashboard.
+
+Configure the variables listed in `.env.example` as server-only Vercel environment variables.
+The API token must never use a `NEXT_PUBLIC_` prefix.
+
+Register this production webhook URL in Rapide Delivery:
+
+```text
+https://okanutrition.com/api/webhooks/rapid-delivery
+```
+
+Copy the one-time webhook signing secret to `RAPIDDELIVERY_WEBHOOK_SECRET`. The webhook verifies
+the HMAC signature, rejects events older than five minutes, and ignores duplicate event IDs.

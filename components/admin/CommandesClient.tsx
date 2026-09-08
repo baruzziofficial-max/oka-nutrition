@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 
 type Order = {
   id: number;
@@ -15,6 +14,10 @@ type Order = {
   total_amount: string;
   status: string;
   created_at: string;
+  rapid_tracking_number: string | null;
+  rapid_status: string | null;
+  rapid_synced_at: string | null;
+  rapid_sync_error: string | null;
 };
 
 const STATUSES = ['Nouvelle', 'Confirmée', 'Expédiée', 'Livrée', 'Annulée'];
@@ -24,6 +27,8 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('Tous');
+  const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const isBoss = role === 'boss';
 
@@ -36,16 +41,83 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
   };
 
   useEffect(() => {
-    fetchOrders();
+    let cancelled = false;
+
+    fetch('/api/orders')
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled && data.ok) setOrders(data.orders);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleStatusChange = async (id: number, newStatus: string) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o)));
-    await fetch(`/api/orders/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    });
+    setActiveOrderId(id);
+    setNotice(null);
+
+    try {
+      const response = await fetch(`/api/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || 'Impossible de modifier la commande.');
+      }
+
+      if (data.order) {
+        setOrders((prev) => prev.map((order) => (order.id === id ? data.order : order)));
+      }
+
+      if (data.rapid?.error) {
+        setNotice({
+          type: 'error',
+          message: `Commande confirmée, mais non envoyée : ${data.rapid.error}`,
+        });
+      } else if (data.rapid?.synced) {
+        setNotice({ type: 'success', message: 'Commande envoyée à Rapide Delivery.' });
+      }
+    } catch (error) {
+      setNotice({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Une erreur est survenue.',
+      });
+      await fetchOrders();
+    } finally {
+      setActiveOrderId(null);
+    }
+  };
+
+  const handleRapidRetry = async (id: number) => {
+    setActiveOrderId(id);
+    setNotice(null);
+
+    try {
+      const response = await fetch(`/api/orders/${id}/rapid-delivery`, { method: 'POST' });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || "Impossible d'envoyer la commande.");
+      }
+
+      await fetchOrders();
+      setNotice({ type: 'success', message: 'Commande envoyée à Rapide Delivery.' });
+    } catch (error) {
+      await fetchOrders();
+      setNotice({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Une erreur est survenue.',
+      });
+    } finally {
+      setActiveOrderId(null);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -66,7 +138,8 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
     });
   }, [orders, search, statusFilter]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const XLSX = await import('xlsx');
     const rows = filteredOrders.map((o) => ({
       Nom: o.name,
       Téléphone: o.phone,
@@ -119,6 +192,19 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
         </select>
       </div>
 
+      {notice && (
+        <div
+          role="status"
+          className={`mt-4 rounded-lg px-4 py-3 text-sm font-medium ${
+            notice.type === 'success'
+              ? 'bg-green-50 text-green-700'
+              : 'bg-red-50 text-red-700'
+          }`}
+        >
+          {notice.message}
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mt-5 overflow-x-auto">
         <table className="w-full text-sm whitespace-nowrap">
           <thead className="bg-gray-50 text-gray-500 text-left">
@@ -131,6 +217,7 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
               <th className="px-4 py-3">Qté</th>
               <th className="px-4 py-3">Montant</th>
               <th className="px-4 py-3">Date</th>
+              <th className="px-4 py-3">Rapide Delivery</th>
               <th className="px-4 py-3">Statut</th>
               {isBoss && <th className="px-4 py-3">Actions</th>}
             </tr>
@@ -138,14 +225,14 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={isBoss ? 10 : 9} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={isBoss ? 11 : 10} className="px-4 py-6 text-center text-gray-400">
                   Chargement...
                 </td>
               </tr>
             )}
             {!loading && filteredOrders.length === 0 && (
               <tr>
-                <td colSpan={isBoss ? 10 : 9} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={isBoss ? 11 : 10} className="px-4 py-6 text-center text-gray-400">
                   Aucune commande trouvée.
                 </td>
               </tr>
@@ -164,10 +251,41 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
                 <td className="px-4 py-3">
                   {new Date(order.created_at).toLocaleDateString('fr-FR')}
                 </td>
+                <td className="px-4 py-3 min-w-[190px] whitespace-normal">
+                  {activeOrderId === order.id ? (
+                    <span className="text-xs text-gray-500">Synchronisation…</span>
+                  ) : order.rapid_tracking_number ? (
+                    <div>
+                      <p className="font-semibold text-gray-800">
+                        Suivi #{order.rapid_tracking_number}
+                      </p>
+                      <p className="text-xs text-green-700 mt-0.5">
+                        {order.rapid_status || 'Envoyée'}
+                      </p>
+                    </div>
+                  ) : order.status === 'Confirmée' ? (
+                    <div>
+                      {order.rapid_sync_error && (
+                        <p className="text-xs text-red-600 mb-1.5" title={order.rapid_sync_error}>
+                          {order.rapid_sync_error}
+                        </p>
+                      )}
+                      <button
+                        onClick={() => handleRapidRetry(order.id)}
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                      >
+                        {order.rapid_sync_error ? 'Réessayer' : 'Envoyer maintenant'}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">Après confirmation</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <select
                     value={order.status}
                     onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                    disabled={activeOrderId === order.id}
                     className={`text-xs font-semibold rounded-full px-3 py-1.5 border-0 focus:outline-none ${
                       order.status === 'Nouvelle'
                         ? 'bg-blue-100 text-blue-700'
