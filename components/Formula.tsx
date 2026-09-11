@@ -10,7 +10,6 @@ export default function Formula() {
   return (
     <section id="formule" className="pt-3 pb-16 md:py-24 bg-blue-light">
       <div className="container mx-auto px-4 flex flex-col md:flex-row items-center gap-12">
-        {/* Heading — shown above the video on mobile only; grouped with body text on desktop */}
         <div className="text-center order-1 md:hidden">
           <h2 className="font-heading text-3xl font-bold text-blue-dark leading-tight relative inline-block">
             {dict.formula.heading}
@@ -21,7 +20,6 @@ export default function Formula() {
           </p>
         </div>
 
-        {/* Video slot */}
         <div className="flex-1 w-full flex justify-center order-2 md:order-1">
           <div className="relative w-full max-w-[280px] md:max-w-[320px] aspect-[9/16] rounded-[2rem] overflow-hidden shadow-xl bg-white border border-blue-bright/15">
             <video
@@ -35,7 +33,6 @@ export default function Formula() {
           </div>
         </div>
 
-        {/* Body text — on desktop this includes the heading (hidden mobile copy above handles small screens) */}
         <div className="flex-1 text-center md:text-start order-3 md:order-2">
           <h2 className="hidden md:block font-heading text-3xl md:text-4xl font-bold text-blue-dark">
             {dict.formula.heading}
@@ -58,6 +55,7 @@ export default function Formula() {
               src={`/images/formula${suffix}.jpg`}
               alt={dict.formula.heading}
               fill
+              sizes="(max-width: 767px) 380px, 440px"
               className="object-contain"
             />
           </div>
