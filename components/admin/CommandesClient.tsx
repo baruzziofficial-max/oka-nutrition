@@ -58,7 +58,68 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
     };
   }, []);
 
+  const handleAddressEdit = async (order: Order) => {
+    const entered = window.prompt(
+      'Adresse exacte du client :',
+      order.address?.trim() || ''
+    );
+    if (entered === null) return;
+
+    const address = entered.trim();
+    if (!address) {
+      setNotice({ type: 'error', message: "L'adresse ne peut pas être vide." });
+      return;
+    }
+
+    setActiveOrderId(order.id);
+    setNotice(null);
+
+    try {
+      const response = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || "Impossible d'enregistrer l'adresse.");
+      }
+
+      if (data.order) {
+        setOrders((prev) => prev.map((item) => (item.id === order.id ? data.order : item)));
+      }
+      setNotice({ type: 'success', message: 'Adresse enregistrée.' });
+    } catch (error) {
+      setNotice({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Une erreur est survenue.',
+      });
+    } finally {
+      setActiveOrderId(null);
+    }
+  };
+
   const handleStatusChange = async (id: number, newStatus: string) => {
+    const currentOrder = orders.find((order) => order.id === id);
+    let addressToSave: string | undefined;
+
+    if (newStatus === 'Confirmée' && !currentOrder?.address?.trim()) {
+      const entered = window.prompt(
+        'Adresse exacte du client (obligatoire avant envoi) :',
+        ''
+      );
+      if (entered === null) return;
+
+      addressToSave = entered.trim();
+      if (!addressToSave) {
+        setNotice({
+          type: 'error',
+          message: "Ajoutez l'adresse exacte avant de confirmer la commande.",
+        });
+        return;
+      }
+    }
+
     setActiveOrderId(id);
     setNotice(null);
 
@@ -66,7 +127,10 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
       const response = await fetch(`/api/orders/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({
+          status: newStatus,
+          ...(addressToSave ? { address: addressToSave } : {}),
+        }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.ok) {
@@ -144,7 +208,7 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
       Nom: o.name,
       Téléphone: o.phone,
       Ville: o.city,
-      Adresse: o.address,
+      Adresse: o.address || 'À compléter',
       Offre: o.offer_title,
       Quantité: o.quantity,
       'Montant (DH)': o.total_amount,
@@ -242,8 +306,23 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
                 <td className="px-4 py-3 font-medium text-gray-800">{order.name}</td>
                 <td className="px-4 py-3">{order.phone}</td>
                 <td className="px-4 py-3">{order.city}</td>
-                <td className="px-4 py-3 max-w-[200px] truncate" title={order.address}>
-                  {order.address}
+                <td className="px-4 py-3 max-w-[220px] whitespace-normal">
+                  {order.address?.trim() ? (
+                    <button
+                      onClick={() => handleAddressEdit(order)}
+                      className="text-left hover:text-blue-700"
+                      title="Modifier l'adresse"
+                    >
+                      {order.address}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleAddressEdit(order)}
+                      className="text-xs font-semibold text-orange-600 hover:text-orange-800"
+                    >
+                      + Ajouter l’adresse
+                    </button>
+                  )}
                 </td>
                 <td className="px-4 py-3">{order.offer_title}</td>
                 <td className="px-4 py-3">{order.quantity}</td>
