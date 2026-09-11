@@ -48,18 +48,40 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: 'Invalid order ID' }, { status: 400 });
     }
 
-    const { status } = await req.json();
+    const body = await req.json();
+    const hasStatus = typeof body.status === 'string';
+    const hasAddress = typeof body.address === 'string';
+
+    if (!hasStatus && !hasAddress) {
+      return NextResponse.json({ ok: false, error: 'Nothing to update' }, { status: 400 });
+    }
 
     const validStatuses = ['Nouvelle', 'Confirmée', 'Expédiée', 'Livrée', 'Annulée'];
-    if (!validStatuses.includes(status)) {
+    if (hasStatus && !validStatuses.includes(body.status)) {
       return NextResponse.json({ ok: false, error: 'Invalid status' }, { status: 400 });
     }
 
-    const updateResult = await sql`
-      UPDATE orders SET status = ${status} WHERE id = ${id} RETURNING id;
-    `;
-    if (updateResult.rows.length === 0) {
+    const existing = await getOrder(id);
+    if (!existing) {
       return NextResponse.json({ ok: false, error: 'Order not found' }, { status: 404 });
+    }
+
+    const cleanAddress = hasAddress ? String(body.address).trim().slice(0, 500) : null;
+    const nextAddress = hasAddress ? cleanAddress || '' : String(existing.address || '').trim();
+
+    if (body.status === 'Confirmée' && !nextAddress) {
+      return NextResponse.json(
+        { ok: false, error: "Ajoutez l'adresse exacte avant de confirmer la commande." },
+        { status: 400 }
+      );
+    }
+
+    if (hasAddress) {
+      await sql`UPDATE orders SET address = ${cleanAddress || ''} WHERE id = ${id};`;
+    }
+
+    if (hasStatus) {
+      await sql`UPDATE orders SET status = ${body.status} WHERE id = ${id};`;
     }
 
     let metaPurchaseSent = false;
@@ -67,8 +89,7 @@ export async function PATCH(
     let rapidError: string | null = null;
     let rapidSynced = false;
 
-    if (status === 'Confirmée') {
-      // A real Meta Purchase is emitted only here, once the team has verified the COD order.
+    if (body.status === 'Confirmée') {
       try {
         const metaOrder = await getOrderForMeta(id);
         if (metaOrder && !metaOrder.meta_purchase_sent_at) {
