@@ -24,6 +24,7 @@ export default function Results() {
                 src={`/images/results-2${suffix}.jpg`}
                 alt={dict.results.heading}
                 fill
+                sizes="(max-width: 767px) 384px, 50vw"
                 className="object-cover"
               />
 
