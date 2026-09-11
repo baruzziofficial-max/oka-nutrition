@@ -50,7 +50,7 @@ export default function Header() {
               width={110}
               height={110}
               className="h-22 w-auto object-contain"
-              priority
+              loading="eager"
             />
           </Link>
 
@@ -93,7 +93,7 @@ export default function Header() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 8zM12 14c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"
                 />
               </svg>
             </button>
