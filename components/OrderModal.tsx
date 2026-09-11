@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useOrder } from '@/context/OrderContext';
 import { useLocale } from '@/context/LocaleContext';
@@ -36,7 +36,7 @@ export default function OrderModal() {
   const { isOpen, selectedOffer, closeModal } = useOrder();
   const { dict, locale } = useLocale();
   const suffix = locale === 'ar' ? '-ar' : '';
-  const [step, setStep] = useState<'offers' | 'form' | 'whatsapp' | 'success'>('offers');
+  const [step, setStep] = useState<'offers' | 'form' | 'success'>('offers');
   const [chosenOffer, setChosenOffer] = useState<Offer | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -161,21 +161,12 @@ export default function OrderModal() {
       }
 
       const orderId = result.orderId ? String(result.orderId) : '';
-      const purchaseEventId = orderId ? `oka_order_${orderId}` : undefined;
+      const leadEventId = orderId ? `oka_lead_${orderId}` : undefined;
 
-      // Only count a conversion after the order has actually been saved.
-      if (typeof window !== 'undefined' && (window as any).ttq) {
-        (window as any).ttq.track('PlaceAnOrder', {
-          content_id: chosenOffer.id,
-          content_name: chosenOffer.title,
-          quantity,
-          value: chosenOffer.price,
-          currency: 'MAD',
-        });
-      }
-
+      // A saved COD form is a lead/order request, not yet a confirmed sale.
+      // The real Purchase event is sent server-side only after staff confirmation.
       trackMeta(
-        'Purchase',
+        'Lead',
         {
           content_name: chosenOffer.title,
           content_ids: [chosenOffer.id],
@@ -184,10 +175,22 @@ export default function OrderModal() {
           value: chosenOffer.price,
           currency: 'MAD',
         },
-        purchaseEventId
+        leadEventId
       );
 
-      setStep('whatsapp');
+      if (typeof window !== 'undefined' && (window as any).ttq) {
+        (window as any).ttq.track('SubmitForm', {
+          content_id: chosenOffer.id,
+          content_name: chosenOffer.title,
+          quantity,
+          value: chosenOffer.price,
+          currency: 'MAD',
+        });
+      }
+
+      // The order is already safely recorded. Do not make a second WhatsApp step
+      // feel mandatory; show success immediately and keep WhatsApp optional.
+      setStep('success');
     } catch (error) {
       console.error('Failed to save order:', error);
       setSubmitError(
@@ -200,10 +203,9 @@ export default function OrderModal() {
     }
   };
 
-  const handleWhatsappConfirm = () => {
+  const handleWhatsappContact = () => {
     if (!chosenOffer) return;
     const quantity = quantityFor(chosenOffer);
-
     const message = dict.orderModal.whatsappMessage(
       quantity,
       chosenOffer.price,
@@ -212,15 +214,14 @@ export default function OrderModal() {
       formData.city,
       formData.address
     );
-
     const url = `https://wa.me/212663822682?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
-    setStep('success');
   };
 
-  const handleSkipWhatsapp = () => {
-    setStep('success');
-  };
+  const reassurance =
+    locale === 'ar'
+      ? 'الدفع عند الاستلام • التوصيل مجاني • تأكيد سريع للطلب'
+      : 'Paiement à la livraison • Livraison gratuite • Confirmation rapide';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -231,13 +232,12 @@ export default function OrderModal() {
               ? dict.orderModal.chooseOffer
               : step === 'form'
               ? dict.orderModal.deliveryInfo
-              : step === 'whatsapp'
-              ? dict.orderModal.whatsappStepTitle
               : dict.orderModal.orderReceivedTitle}
           </h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+            aria-label="Fermer"
           >
             ×
           </button>
@@ -255,12 +255,7 @@ export default function OrderModal() {
                 }`}
               >
                 <div className="relative w-32 h-32 flex-shrink-0">
-                  <Image
-                    src={offer.image}
-                    alt={offer.title}
-                    fill
-                    className="object-contain"
-                  />
+                  <Image src={offer.image} alt={offer.title} fill className="object-contain" />
                 </div>
                 <div className="flex-1 text-center sm:text-start">
                   <span className="inline-block bg-blue-bright text-white text-xs font-bold px-3 py-1 rounded-full mb-1">
@@ -268,9 +263,7 @@ export default function OrderModal() {
                   </span>
                   <h3 className="text-xl font-bold text-blue-dark">{offer.title}</h3>
                   <p className="text-gray-600">{offer.description}</p>
-                  <p className="text-2xl font-extrabold text-blue-bright mt-1">
-                    {offer.price} DH
-                  </p>
+                  <p className="text-2xl font-extrabold text-blue-bright mt-1">{offer.price} DH</p>
                 </div>
                 <button
                   onClick={() => handleSelectOffer(offer)}
@@ -285,7 +278,7 @@ export default function OrderModal() {
 
         {step === 'form' && chosenOffer && (
           <div>
-            <div className="flex items-center gap-4 p-4 rounded-2xl bg-blue-light mb-6">
+            <div className="flex items-center gap-4 p-4 rounded-2xl bg-blue-light mb-4">
               <div className="relative w-16 h-16 flex-shrink-0">
                 <Image src={chosenOffer.image} alt={chosenOffer.title} fill className="object-contain" />
               </div>
@@ -296,13 +289,18 @@ export default function OrderModal() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="mb-5 rounded-xl border border-blue-bright/20 bg-blue-light/50 px-4 py-3 text-center text-sm font-semibold text-blue-dark">
+              {reassurance}
+            </div>
+
+            <div className="space-y-3">
               <div>
                 <label className="block text-sm font-semibold text-blue-dark mb-1">
                   {dict.orderModal.fullName}
                 </label>
                 <input
                   type="text"
+                  autoComplete="name"
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   placeholder={dict.orderModal.fullNamePlaceholder}
@@ -316,6 +314,8 @@ export default function OrderModal() {
                 </label>
                 <input
                   type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={formData.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
                   placeholder={dict.orderModal.phonePlaceholder}
@@ -329,6 +329,7 @@ export default function OrderModal() {
                 </label>
                 <input
                   type="text"
+                  autoComplete="address-level2"
                   value={formData.city}
                   onChange={(e) => handleChange('city', e.target.value)}
                   placeholder={dict.orderModal.cityPlaceholder}
@@ -344,7 +345,7 @@ export default function OrderModal() {
                   value={formData.address}
                   onChange={(e) => handleChange('address', e.target.value)}
                   placeholder={dict.orderModal.addressPlaceholder}
-                  rows={3}
+                  rows={2}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-bright resize-none"
                 />
               </div>
@@ -375,44 +376,28 @@ export default function OrderModal() {
           </div>
         )}
 
-        {step === 'whatsapp' && (
+        {step === 'success' && (
           <div className="text-center py-6">
             <p className="text-5xl mb-4">✅</p>
-            <p className="text-gray-700 mb-8">{dict.orderModal.whatsappStepMessage}</p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleWhatsappConfirm}
-                className="btn-primary py-3 px-10"
-              >
-                {dict.orderModal.confirmWhatsapp}
+            <p className="text-gray-700">{dict.orderModal.orderReceivedMessage}</p>
+            <p className="mt-3 text-sm font-medium text-gray-500">
+              {locale === 'ar'
+                ? 'سنتواصل معك لتأكيد الطلب قبل الإرسال.'
+                : 'Nous vous contacterons pour confirmer la commande avant expédition.'}
+            </p>
+            <div className="mt-6 flex flex-col gap-3">
+              <button onClick={handleClose} className="btn-primary py-3 px-10">
+                {dict.orderModal.close}
               </button>
-              <button
-                onClick={handleSkipWhatsapp}
-                className="btn-outline py-3 px-10"
-              >
-                {dict.orderModal.skipWhatsapp}
+              <button onClick={handleWhatsappContact} className="btn-outline py-3 px-10">
+                {locale === 'ar' ? 'تواصل معنا على واتساب' : 'Nous contacter sur WhatsApp'}
               </button>
             </div>
           </div>
         )}
 
-        {step === 'success' && (
-          <div className="text-center py-6">
-            <p className="text-5xl mb-4">✅</p>
-            <p className="text-gray-700">{dict.orderModal.orderReceivedMessage}</p>
-            <button
-              onClick={handleClose}
-              className="btn-primary mt-6 py-3 px-10"
-            >
-              {dict.orderModal.close}
-            </button>
-          </div>
-        )}
-
         {step === 'offers' && (
-          <p className="mt-6 text-center text-sm text-gray-500">
-            {dict.orderModal.selectPrompt}
-          </p>
+          <p className="mt-6 text-center text-sm text-gray-500">{dict.orderModal.selectPrompt}</p>
         )}
       </div>
     </div>
