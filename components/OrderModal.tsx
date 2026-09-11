@@ -18,7 +18,6 @@ type FormData = {
   name: string;
   phone: string;
   city: string;
-  address: string;
 };
 
 function trackMeta(eventName: string, params: Record<string, unknown>, eventId?: string) {
@@ -67,7 +66,6 @@ export default function OrderModal() {
     name: '',
     phone: '',
     city: '',
-    address: '',
   });
 
   const offers: Offer[] = [
@@ -94,7 +92,7 @@ export default function OrderModal() {
   const handleClose = () => {
     setStep('offers');
     setChosenOffer(null);
-    setFormData({ name: '', phone: '', city: '', address: '' });
+    setFormData({ name: '', phone: '', city: '' });
     setIsSubmitting(false);
     setSubmitError('');
     trackedCheckoutOfferRef.current = null;
@@ -127,8 +125,7 @@ export default function OrderModal() {
   const isFormValid =
     formData.name.trim() &&
     formData.phone.trim() &&
-    formData.city.trim() &&
-    formData.address.trim();
+    formData.city.trim();
 
   const quantityFor = (offer: Offer) => (offer.id === 'offre-2' ? 3 : 1);
 
@@ -147,7 +144,6 @@ export default function OrderModal() {
           name: formData.name,
           phone: formData.phone,
           city: formData.city,
-          address: formData.address,
           offerTitle: chosenOffer.title,
           offerDescription: chosenOffer.description,
           quantity,
@@ -163,8 +159,6 @@ export default function OrderModal() {
       const orderId = result.orderId ? String(result.orderId) : '';
       const leadEventId = orderId ? `oka_lead_${orderId}` : undefined;
 
-      // A saved COD form is a lead/order request, not yet a confirmed sale.
-      // The real Purchase event is sent server-side only after staff confirmation.
       trackMeta(
         'Lead',
         {
@@ -188,8 +182,6 @@ export default function OrderModal() {
         });
       }
 
-      // The order is already safely recorded. Do not make a second WhatsApp step
-      // feel mandatory; show success immediately and keep WhatsApp optional.
       setStep('success');
     } catch (error) {
       console.error('Failed to save order:', error);
@@ -212,7 +204,7 @@ export default function OrderModal() {
       formData.name,
       formData.phone,
       formData.city,
-      formData.address
+      ''
     );
     const url = `https://wa.me/212663822682?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
@@ -336,20 +328,13 @@ export default function OrderModal() {
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-bright"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-blue-dark mb-1">
-                  {dict.orderModal.address}
-                </label>
-                <textarea
-                  value={formData.address}
-                  onChange={(e) => handleChange('address', e.target.value)}
-                  placeholder={dict.orderModal.addressPlaceholder}
-                  rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-bright resize-none"
-                />
-              </div>
             </div>
+
+            <p className="mt-3 text-center text-xs text-gray-500">
+              {locale === 'ar'
+                ? 'سيتم تأكيد عنوان التوصيل معك قبل الإرسال.'
+                : 'Votre adresse de livraison sera confirmée avec vous avant expédition.'}
+            </p>
 
             {submitError && (
               <p className="mt-4 text-sm text-red-600 text-center" role="alert">
@@ -357,7 +342,7 @@ export default function OrderModal() {
               </p>
             )}
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-5">
               <button
                 onClick={() => setStep('offers')}
                 disabled={isSubmitting}
@@ -382,8 +367,8 @@ export default function OrderModal() {
             <p className="text-gray-700">{dict.orderModal.orderReceivedMessage}</p>
             <p className="mt-3 text-sm font-medium text-gray-500">
               {locale === 'ar'
-                ? 'سنتواصل معك لتأكيد الطلب قبل الإرسال.'
-                : 'Nous vous contacterons pour confirmer la commande avant expédition.'}
+                ? 'سنتواصل معك لتأكيد الطلب وعنوان التوصيل قبل الإرسال.'
+                : 'Nous vous contacterons pour confirmer la commande et l’adresse avant expédition.'}
             </p>
             <div className="mt-6 flex flex-col gap-3">
               <button onClick={handleClose} className="btn-primary py-3 px-10">
