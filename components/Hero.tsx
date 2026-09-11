@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Image from 'next/image';
 import { useOrder, type Offer } from '@/context/OrderContext';
@@ -53,11 +53,9 @@ export default function Hero() {
     <section id="dht-control" className="relative bg-blue-light overflow-hidden">
       <div className="hidden lg:grid lg:grid-cols-2 lg:items-center">
         <div className="py-16 px-10 xl:px-20">
-          <h1 className="font-heading text-4xl xl:text-5xl font-bold leading-tight text-blue-dark">
-            {dict.hero.desktop.headline1}
-          </h1>
-          <h1 className="font-heading text-4xl xl:text-5xl font-bold leading-tight text-blue-bright">
-            {dict.hero.desktop.headline2}
+          <h1 className="font-heading text-4xl xl:text-5xl font-bold leading-tight">
+            <span className="block text-blue-dark">{dict.hero.desktop.headline1}</span>
+            <span className="block text-blue-bright">{dict.hero.desktop.headline2}</span>
           </h1>
 
           <p className="mt-6 text-lg text-gray-600 max-w-md">
@@ -174,7 +172,7 @@ export default function Hero() {
         </div>
       </div>
 
-      <div style={{ backgroundColor: "#0E1C4D" }} className="py-3.5">
+      <div style={{ backgroundColor: '#0E1C4D' }} className="py-3.5">
         <div className="container mx-auto px-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm font-bold text-white text-center">
           <span className="inline-flex items-center gap-2">
             <svg className="w-4 h-4 text-blue-bright" fill="none" stroke="currentColor" viewBox="0 0 24 24">
