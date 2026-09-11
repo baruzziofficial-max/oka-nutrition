@@ -30,7 +30,13 @@ export default function Benefits() {
               className="card-premium text-center flex flex-col items-center shrink-0 w-[85%] sm:w-auto snap-center"
             >
               <div className="relative w-full aspect-square rounded-xl overflow-hidden">
-                <Image src={images[idx]} alt={b.label} fill className="object-cover" />
+                <Image
+                  src={images[idx]}
+                  alt={b.label}
+                  fill
+                  sizes="(max-width: 639px) 85vw, 33vw"
+                  className="object-cover"
+                />
               </div>
               <h3 className="mt-4 font-bold text-blue-dark">{b.label}</h3>
               <p className="mt-2 text-sm text-gray-600">{b.desc}</p>
