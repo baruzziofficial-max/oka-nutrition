@@ -51,7 +51,6 @@ export default function Hero() {
 
   return (
     <section id="dht-control" className="relative bg-blue-light overflow-hidden">
-      {/* Desktop / laptop layout — split hero, price card removed (moved to shared packs section below) */}
       <div className="hidden lg:grid lg:grid-cols-2 lg:items-center">
         <div className="py-16 px-10 xl:px-20">
           <h1 className="font-heading text-4xl xl:text-5xl font-bold leading-tight text-blue-dark">
@@ -84,26 +83,25 @@ export default function Hero() {
             src="/images/hero-model.jpg"
             alt="OKA Nutrition DHT Control"
             fill
+            sizes="50vw"
             className="object-cover"
-            priority
           />
         </div>
       </div>
 
-      {/* Phone & tablet top banner image — mobile/tablet only */}
       <div className="lg:hidden">
         <div className="relative w-full aspect-[500/400] bg-blue-light">
           <Image
             src={`/images/hero-banner${suffix}.jpg`}
             alt="OKA Nutrition DHT Control"
             fill
+            sizes="100vw"
             className="object-contain"
             priority
           />
         </div>
       </div>
 
-      {/* Pack cards section — now shown on phone, tablet AND desktop */}
       <div className="bg-blue-light py-8 sm:py-12">
         <div className="container mx-auto px-4">
           <div className="flex justify-center">
@@ -136,6 +134,7 @@ export default function Hero() {
                     src={pack.image}
                     alt={pack.title}
                     fill
+                    sizes="(max-width: 639px) 70vw, 360px"
                     className="object-contain"
                   />
                 </div>
@@ -175,7 +174,6 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Shipping / payment bar — now shown on phone, tablet AND desktop */}
       <div style={{ backgroundColor: "#0E1C4D" }} className="py-3.5">
         <div className="container mx-auto px-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm font-bold text-white text-center">
           <span className="inline-flex items-center gap-2">
