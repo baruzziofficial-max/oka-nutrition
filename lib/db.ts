@@ -26,6 +26,15 @@ export async function ensureTables() {
   await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rapid_sync_error TEXT;`;
   await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rapid_state_date TIMESTAMPTZ;`;
 
+  // Keep the original visitor attribution so a Purchase can be sent only
+  // after a real order is confirmed by the team.
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS meta_fbp TEXT;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS meta_fbc TEXT;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS meta_client_ip TEXT;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS meta_client_user_agent TEXT;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS meta_event_source_url TEXT;`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS meta_purchase_sent_at TIMESTAMPTZ;`;
+
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS orders_rapid_tracking_number_unique
     ON orders (rapid_tracking_number)
