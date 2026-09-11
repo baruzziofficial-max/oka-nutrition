@@ -1,17 +1,19 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import PromoBar from '@/components/PromoBar';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
-import Benefits from '@/components/Benefits';
-import Formula from '@/components/Formula';
-import Results from '@/components/Results';
-import Reviews from '@/components/Reviews';
-import FAQ from '@/components/FAQ';
-import FinalCTA from '@/components/FinalCTA';
-import Footer from '@/components/Footer';
-import OrderModal from '@/components/OrderModal';
 import WhatsAppButton from '@/components/WhatsAppButton';
+
+const Benefits = dynamic(() => import('@/components/Benefits'));
+const Formula = dynamic(() => import('@/components/Formula'));
+const Results = dynamic(() => import('@/components/Results'));
+const Reviews = dynamic(() => import('@/components/Reviews'));
+const FAQ = dynamic(() => import('@/components/FAQ'));
+const FinalCTA = dynamic(() => import('@/components/FinalCTA'));
+const Footer = dynamic(() => import('@/components/Footer'));
+const OrderModal = dynamic(() => import('@/components/OrderModal'), { ssr: false });
 
 export default function HomePage() {
   return (
