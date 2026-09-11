@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, phone, city, address, offerTitle, offerDescription, quantity, totalAmount } = body;
 
-    if (!name || !phone || !city || !address || !offerTitle || !totalAmount) {
+    if (!name || !phone || !city || !offerTitle || !totalAmount) {
       return NextResponse.json({ ok: false, error: 'Missing fields' }, { status: 400 });
     }
 
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const cleanName = String(name).trim().slice(0, 120);
     const cleanPhone = String(phone).trim().slice(0, 30);
     const cleanCity = String(city).trim().slice(0, 120);
-    const cleanAddress = String(address).trim().slice(0, 500);
+    const cleanAddress = String(address || '').trim().slice(0, 500);
     const cleanOfferTitle = String(offerTitle).trim().slice(0, 160);
     const cleanOfferDescription = String(offerDescription || '').trim().slice(0, 240);
 
@@ -53,8 +53,8 @@ export async function POST(req: NextRequest) {
 
     const orderId = result.rows[0]?.id ?? null;
 
-    // Important: a saved COD form is not yet a real sale. Meta Purchase is sent
-    // only when the team changes this order to "Confirmée" in the admin.
+    // A saved COD form is a lead/order request. Address can be completed
+    // during confirmation and Purchase is emitted only after staff confirmation.
     return NextResponse.json({ ok: true, orderId });
   } catch (error) {
     console.error(error);
