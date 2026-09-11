@@ -2,12 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql, ensureTables } from '@/lib/db';
 import { getCurrentRole } from '@/lib/auth';
 import { syncOrderWithRapidDelivery } from '@/lib/order-rapid-delivery';
+import { sendConfirmedOrderPurchase } from '@/lib/meta-capi';
 
 async function getOrder(id: number) {
   const result = await sql`
     SELECT id, name, phone, city, address, offer_title, offer_description,
            quantity, total_amount, status, created_at,
            rapid_tracking_number, rapid_status, rapid_synced_at, rapid_sync_error
+    FROM orders
+    WHERE id = ${id};
+  `;
+  return result.rows[0] ?? null;
+}
+
+async function getOrderForMeta(id: number) {
+  const result = await sql`
+    SELECT id, name, phone, offer_title, offer_description, quantity, total_amount,
+           meta_fbp, meta_fbc, meta_client_ip, meta_client_user_agent,
+           meta_event_source_url, meta_purchase_sent_at
     FROM orders
     WHERE id = ${id};
   `;
@@ -50,10 +62,49 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: 'Order not found' }, { status: 404 });
     }
 
+    let metaPurchaseSent = false;
+    let metaError: string | null = null;
     let rapidError: string | null = null;
     let rapidSynced = false;
 
     if (status === 'Confirmée') {
+      // A real Meta Purchase is emitted only here, once the team has verified the COD order.
+      try {
+        const metaOrder = await getOrderForMeta(id);
+        if (metaOrder && !metaOrder.meta_purchase_sent_at) {
+          await sendConfirmedOrderPurchase({
+            id: Number(metaOrder.id),
+            name: String(metaOrder.name || ''),
+            phone: String(metaOrder.phone || ''),
+            offer_title: String(metaOrder.offer_title || ''),
+            offer_description: metaOrder.offer_description
+              ? String(metaOrder.offer_description)
+              : null,
+            quantity: Number(metaOrder.quantity || 1),
+            total_amount: metaOrder.total_amount,
+            meta_fbp: metaOrder.meta_fbp ? String(metaOrder.meta_fbp) : null,
+            meta_fbc: metaOrder.meta_fbc ? String(metaOrder.meta_fbc) : null,
+            meta_client_ip: metaOrder.meta_client_ip ? String(metaOrder.meta_client_ip) : null,
+            meta_client_user_agent: metaOrder.meta_client_user_agent
+              ? String(metaOrder.meta_client_user_agent)
+              : null,
+            meta_event_source_url: metaOrder.meta_event_source_url
+              ? String(metaOrder.meta_event_source_url)
+              : null,
+          });
+
+          await sql`
+            UPDATE orders
+            SET meta_purchase_sent_at = now()
+            WHERE id = ${id} AND meta_purchase_sent_at IS NULL;
+          `;
+          metaPurchaseSent = true;
+        }
+      } catch (error) {
+        metaError = error instanceof Error ? error.message : 'Meta Purchase failed';
+        console.error('Meta confirmed Purchase error:', error);
+      }
+
       try {
         await syncOrderWithRapidDelivery(id);
         rapidSynced = true;
@@ -70,6 +121,7 @@ export async function PATCH(
     return NextResponse.json({
       ok: true,
       order,
+      meta: { purchaseSent: metaPurchaseSent, error: metaError },
       rapid: { synced: rapidSynced, error: rapidError },
     });
   } catch (error) {
