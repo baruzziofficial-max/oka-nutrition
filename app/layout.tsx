@@ -1,6 +1,5 @@
 ﻿import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Inter, Playfair_Display, Cairo } from 'next/font/google';
 import './globals.css';
 import { OrderProvider } from '@/context/OrderContext';
@@ -16,6 +15,7 @@ const playfair = Playfair_Display({
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
   variable: '--font-cairo',
+  preload: false,
 });
 
 export const metadata: Metadata = {
