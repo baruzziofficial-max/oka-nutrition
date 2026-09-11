@@ -16,11 +16,23 @@ export default function SeoStructuredData({ locale }: SeoStructuredDataProps) {
         '@type': 'Organization',
         '@id': 'https://okanutrition.com/#organization',
         name: 'Öka Nutrition',
-        url: 'https://okanutrition.com',
+        alternateName: ['OKA Nutrition', 'Oka Nutrition'],
+        url: 'https://okanutrition.com/',
         logo: {
           '@type': 'ImageObject',
           url: 'https://okanutrition.com/images/logo-mark.png',
         },
+      },
+      {
+        '@type': 'WebSite',
+        '@id': 'https://okanutrition.com/#website',
+        url: 'https://okanutrition.com/',
+        name: 'Öka Nutrition',
+        alternateName: ['OKA Nutrition', 'Oka Nutrition'],
+        publisher: {
+          '@id': 'https://okanutrition.com/#organization',
+        },
+        inLanguage: ['fr-MA', 'ar-MA'],
       },
       {
         '@type': 'Product',
