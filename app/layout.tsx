@@ -18,9 +18,9 @@ const cairo = Cairo({
   preload: false,
 });
 
-const seoTitle = 'DHT Control – Complément cheveux homme au Maroc | Öka Nutrition';
+const seoTitle = 'Öka Nutrition | DHT Control – Complément cheveux homme au Maroc';
 const seoDescription =
-  'DHT Control est un complément alimentaire pour hommes avec Saw Palmetto, L-Méthionine, L-Cystéine, zinc, sélénium et vitamine D3. Livraison gratuite au Maroc.';
+  'Öka Nutrition DHT Control est un complément alimentaire pour hommes avec Saw Palmetto, L-Méthionine, L-Cystéine, zinc, sélénium et vitamine D3. Livraison gratuite au Maroc.';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://okanutrition.com'),
@@ -31,6 +31,10 @@ export const metadata: Metadata = {
   description: seoDescription,
   applicationName: 'Öka Nutrition',
   category: 'health',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+  },
   alternates: {
     canonical: '/',
     languages: {
