@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { sql, ensureTables } from '@/lib/db';
+import { sql } from '@/lib/db';
 import { createRapidDeliveryParcel, RapidDeliveryError } from '@/lib/rapid-delivery';
 
 type ClaimedOrder = {
@@ -30,8 +30,6 @@ function safeErrorMessage(error: unknown) {
 export async function syncOrderWithRapidDelivery(
   orderId: number
 ): Promise<RapidOrderSyncOutcome> {
-  await ensureTables();
-
   const claimResult = await sql`
     UPDATE orders
     SET rapid_sync_started_at = now(), rapid_sync_error = NULL

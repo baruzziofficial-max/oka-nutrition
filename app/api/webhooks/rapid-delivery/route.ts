@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { sql, ensureTables } from '@/lib/db';
+import { sql } from '@/lib/db';
 import { getIntegrationSecret } from '@/lib/integration-secrets';
 
 type RapidDeliveryWebhook = {
@@ -97,7 +97,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: false, error: 'Invalid event' }, { status: 400 });
   }
 
-  await ensureTables();
   const client = await sql.connect();
 
   try {

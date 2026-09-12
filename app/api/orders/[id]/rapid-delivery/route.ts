@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentRole } from '@/lib/auth';
-import { sql, ensureTables } from '@/lib/db';
+import { sql } from '@/lib/db';
 import { syncOrderWithRapidDelivery } from '@/lib/order-rapid-delivery';
 
 function parseOrderId(value: string) {
@@ -18,7 +18,6 @@ export async function POST(
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    await ensureTables();
     const rawParams = await params;
     const id = parseOrderId(rawParams.id);
     if (!id) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql, ensureTables } from '@/lib/db';
+import { sql } from '@/lib/db';
 import { getCurrentRole } from '@/lib/auth';
 import { syncOrderWithRapidDelivery } from '@/lib/order-rapid-delivery';
 import { sendConfirmedOrderPurchase } from '@/lib/meta-capi';
@@ -41,7 +41,6 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    await ensureTables();
     const rawParams = await params;
     const id = parseOrderId(rawParams.id);
     if (!id) {
@@ -161,7 +160,6 @@ export async function DELETE(
       return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
     }
 
-    await ensureTables();
     const rawParams = await params;
     const id = parseOrderId(rawParams.id);
     if (!id) {

@@ -1,8 +1,6 @@
-import { sql, ensureTables } from '@/lib/db';
+import { sql } from '@/lib/db';
 
 export default async function ClientsPage() {
-  await ensureTables();
-
   const result = await sql`
     SELECT
       phone,

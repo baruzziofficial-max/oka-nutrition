@@ -1,28 +1,29 @@
-import { sql, ensureTables } from '@/lib/db';
+import { sql } from '@/lib/db';
 import { getCurrentRole } from '@/lib/auth';
 
 export default async function DashboardPage() {
-  await ensureTables();
   const role = await getCurrentRole();
   const isWorker = role === 'worker';
 
-  const todayResult = await sql`
-    SELECT COUNT(*)::int AS count FROM orders WHERE created_at::date = CURRENT_DATE;
-  `;
-  const pendingResult = await sql`
-    SELECT COUNT(*)::int AS count FROM orders WHERE status = 'Nouvelle';
-  `;
-  const monthRevenueResult = await sql`
-    SELECT COALESCE(SUM(total_amount), 0)::float AS total
-    FROM orders
-    WHERE status != 'Annulée' AND date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE);
-  `;
-  const recentOrders = await sql`
-    SELECT id, name, city, offer_title, total_amount, status, created_at
-    FROM orders
-    ORDER BY created_at DESC
-    LIMIT 5;
-  `;
+  const [todayResult, pendingResult, monthRevenueResult, recentOrders] = await Promise.all([
+    sql`
+      SELECT COUNT(*)::int AS count FROM orders WHERE created_at::date = CURRENT_DATE;
+    `,
+    sql`
+      SELECT COUNT(*)::int AS count FROM orders WHERE status = 'Nouvelle';
+    `,
+    sql`
+      SELECT COALESCE(SUM(total_amount), 0)::float AS total
+      FROM orders
+      WHERE status != 'Annulée' AND date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE);
+    `,
+    sql`
+      SELECT id, name, city, offer_title, total_amount, status, created_at
+      FROM orders
+      ORDER BY created_at DESC
+      LIMIT 5;
+    `,
+  ]);
 
   const todayCount = todayResult.rows[0]?.count ?? 0;
   const pendingCount = pendingResult.rows[0]?.count ?? 0;
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
 
       <div className={`grid grid-cols-1 sm:grid-cols-${isWorker ? '2' : '3'} gap-4 mt-6`}>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <p className="text-sm text-gray-500">Commandes aujourd'hui</p>
+          <p className="text-sm text-gray-500">Commandes aujourd&apos;hui</p>
           <p className="text-3xl font-bold text-gray-800 mt-1">{todayCount}</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
@@ -43,7 +44,7 @@ export default async function DashboardPage() {
         </div>
         {!isWorker && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <p className="text-sm text-gray-500">Chiffre d'affaires (ce mois)</p>
+            <p className="text-sm text-gray-500">Chiffre d&apos;affaires (ce mois)</p>
             <p className="text-3xl font-bold text-green-600 mt-1">{monthRevenue} DH</p>
           </div>
         )}

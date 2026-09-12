@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql, ensureTables } from '@/lib/db';
+import { sql } from '@/lib/db';
 
 export async function GET() {
   try {
-    await ensureTables();
     const result = await sql`SELECT id, product_name, quantity FROM stock ORDER BY product_name;`;
     return NextResponse.json({ ok: true, stock: result.rows });
   } catch (error) {

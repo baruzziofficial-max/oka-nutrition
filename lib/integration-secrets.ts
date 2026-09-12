@@ -1,7 +1,7 @@
 import 'server-only';
 
 import crypto from 'crypto';
-import { sql, ensureTables } from '@/lib/db';
+import { sql } from '@/lib/db';
 
 export type IntegrationSecretKey =
   | 'rapid_delivery_api_token'
@@ -48,7 +48,6 @@ function decrypt(value: string) {
 }
 
 export async function setIntegrationSecret(key: IntegrationSecretKey, value: string) {
-  await ensureTables();
   const encryptedValue = encrypt(value.trim());
 
   await sql`
@@ -60,7 +59,6 @@ export async function setIntegrationSecret(key: IntegrationSecretKey, value: str
 }
 
 export async function getIntegrationSecret(key: IntegrationSecretKey) {
-  await ensureTables();
   const result = await sql`
     SELECT encrypted_value FROM integration_secrets WHERE secret_key = ${key};
   `;
@@ -71,7 +69,6 @@ export async function getIntegrationSecret(key: IntegrationSecretKey) {
 }
 
 export async function hasIntegrationSecret(key: IntegrationSecretKey) {
-  await ensureTables();
   const result = await sql`
     SELECT EXISTS(
       SELECT 1 FROM integration_secrets WHERE secret_key = ${key}

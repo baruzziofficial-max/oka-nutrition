@@ -5,6 +5,8 @@ import PromoBar from '@/components/PromoBar';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import TikTokPixel from '@/components/TikTokPixel';
+import MetaPixel from '@/components/MetaPixel';
 
 const Benefits = dynamic(() => import('@/components/Benefits'));
 const Formula = dynamic(() => import('@/components/Formula'));
@@ -18,6 +20,8 @@ const OrderModal = dynamic(() => import('@/components/OrderModal'), { ssr: false
 export default function HomePage() {
   return (
     <>
+      <TikTokPixel />
+      <MetaPixel />
       <PromoBar />
       <Header />
       <main className="flex flex-col">

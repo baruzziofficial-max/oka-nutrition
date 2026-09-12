@@ -1,37 +1,41 @@
-import { sql, ensureTables } from '@/lib/db';
+import { sql } from '@/lib/db';
 import { getCurrentRole } from '@/lib/auth';
 
 export default async function StatistiquesPage() {
-  await ensureTables();
   const role = await getCurrentRole();
   const isWorker = role === 'worker';
 
-  const totalRevenueResult = await sql`
-    SELECT COALESCE(SUM(total_amount), 0)::float AS total FROM orders WHERE status != 'Annulée';
-  `;
-  const totalOrdersResult = await sql`SELECT COUNT(*)::int AS count FROM orders;`;
-
-  const byStatusResult = await sql`
-    SELECT status, COUNT(*)::int AS count
-    FROM orders
-    GROUP BY status;
-  `;
-
-  const byOfferResult = await sql`
-    SELECT offer_title, COUNT(*)::int AS count, COALESCE(SUM(total_amount), 0)::float AS revenue
-    FROM orders
-    WHERE status != 'Annulée'
-    GROUP BY offer_title
-    ORDER BY count DESC;
-  `;
-
-  const last30DaysResult = await sql`
-    SELECT created_at::date AS day, COUNT(*)::int AS count
-    FROM orders
-    WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
-    GROUP BY day
-    ORDER BY day ASC;
-  `;
+  const [
+    totalRevenueResult,
+    totalOrdersResult,
+    byStatusResult,
+    byOfferResult,
+    last30DaysResult,
+  ] = await Promise.all([
+    sql`
+      SELECT COALESCE(SUM(total_amount), 0)::float AS total FROM orders WHERE status != 'Annulée';
+    `,
+    sql`SELECT COUNT(*)::int AS count FROM orders;`,
+    sql`
+      SELECT status, COUNT(*)::int AS count
+      FROM orders
+      GROUP BY status;
+    `,
+    sql`
+      SELECT offer_title, COUNT(*)::int AS count, COALESCE(SUM(total_amount), 0)::float AS revenue
+      FROM orders
+      WHERE status != 'Annulée'
+      GROUP BY offer_title
+      ORDER BY count DESC;
+    `,
+    sql`
+      SELECT created_at::date AS day, COUNT(*)::int AS count
+      FROM orders
+      WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY day
+      ORDER BY day ASC;
+    `,
+  ]);
 
   const totalRevenue = totalRevenueResult.rows[0]?.total ?? 0;
   const totalOrders = totalOrdersResult.rows[0]?.count ?? 0;
@@ -48,7 +52,7 @@ export default async function StatistiquesPage() {
       <div className={`grid grid-cols-1 sm:grid-cols-${isWorker ? '1' : '2'} gap-4 mt-6`}>
         {!isWorker && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <p className="text-sm text-gray-500">Chiffre d'affaires total</p>
+            <p className="text-sm text-gray-500">Chiffre d&apos;affaires total</p>
             <p className="text-3xl font-bold text-green-600 mt-1">{totalRevenue} DH</p>
           </div>
         )}

@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql, ensureTables } from '@/lib/db';
+import { sql } from '@/lib/db';
 import { getCurrentRole } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    await ensureTables();
-
     const body = await req.json();
     const { name, phone, city, address, offerTitle, offerDescription, quantity, totalAmount } = body;
 
@@ -69,7 +67,6 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    await ensureTables();
     const result = await sql`
       SELECT id, name, phone, city, address, offer_title, offer_description,
              quantity, total_amount, status, created_at,
