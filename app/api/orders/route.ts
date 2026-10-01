@@ -70,7 +70,7 @@ export async function GET() {
     const result = await sql`
       SELECT id, name, phone, city, address, offer_title, offer_description,
              quantity, total_amount, status, created_at,
-             rapid_tracking_number, rapid_status, rapid_synced_at, rapid_sync_error
+             rapid_tracking_number, rapid_status, rapid_synced_at, rapid_sync_error, meta_purchase_sent_at
       FROM orders
       ORDER BY created_at DESC;
     `;

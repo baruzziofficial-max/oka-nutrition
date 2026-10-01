@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import TikTokPixel from '@/components/TikTokPixel';
+import MobileOrderBar from '@/components/MobileOrderBar';
 import MetaPixel from '@/components/MetaPixel';
 
 const Benefits = dynamic(() => import('@/components/Benefits'));
@@ -50,6 +51,7 @@ export default function HomePage() {
       <Footer />
       <OrderModal />
       <WhatsAppButton />
+      <MobileOrderBar />
     </>
   );
 }

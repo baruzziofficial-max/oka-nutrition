@@ -88,6 +88,9 @@ export default function Hero() {
       </div>
 
       <div className="lg:hidden">
+        <p className="bg-white px-4 py-2 text-center text-xs font-semibold text-blue-dark">
+          {locale === 'ar' ? 'توصيل مجاني • الدفع عند الاستلام' : 'Livraison gratuite • Paiement à réception'}
+        </p>
         <div className="relative w-full aspect-[500/400] bg-blue-light">
           <Image
             src={`/images/hero-banner${suffix}.jpg`}

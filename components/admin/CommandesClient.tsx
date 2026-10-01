@@ -18,6 +18,7 @@ type Order = {
   rapid_status: string | null;
   rapid_synced_at: string | null;
   rapid_sync_error: string | null;
+  meta_purchase_sent_at: string | null;
 };
 
 const STATUSES = ['Nouvelle', 'Confirmée', 'Expédiée', 'Livrée', 'Annulée'];
@@ -141,7 +142,12 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
         setOrders((prev) => prev.map((order) => (order.id === id ? data.order : order)));
       }
 
-      if (data.rapid?.error) {
+      if (data.meta?.error) {
+        setNotice({
+          type: 'error',
+          message: `Commande enregistrée, mais achat non transmis à Meta. Vérifiez la configuration du suivi.${data.rapid?.error ? ' Envoi à Rapide Delivery également en échec.' : data.rapid?.synced ? ' Colis transmis à Rapide Delivery.' : ''}`,
+        });
+      } else if (data.rapid?.error) {
         setNotice({
           type: 'error',
           message: `Commande confirmée, mais non envoyée : ${data.rapid.error}`,
@@ -282,6 +288,7 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
               <th className="px-4 py-3">Montant</th>
               <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3">Rapide Delivery</th>
+              <th className="px-4 py-3">Suivi Meta</th>
               <th className="px-4 py-3">Statut</th>
               {isBoss && <th className="px-4 py-3">Actions</th>}
             </tr>
@@ -289,14 +296,14 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={isBoss ? 11 : 10} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={isBoss ? 12 : 11} className="px-4 py-6 text-center text-gray-400">
                   Chargement...
                 </td>
               </tr>
             )}
             {!loading && filteredOrders.length === 0 && (
               <tr>
-                <td colSpan={isBoss ? 11 : 10} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={isBoss ? 12 : 11} className="px-4 py-6 text-center text-gray-400">
                   Aucune commande trouvée.
                 </td>
               </tr>
@@ -358,6 +365,15 @@ export default function CommandesClient({ role }: { role: 'worker' | 'boss' | nu
                     </div>
                   ) : (
                     <span className="text-xs text-gray-400">Après confirmation</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 whitespace-normal min-w-[160px]">
+                  {order.meta_purchase_sent_at ? (
+                    <span className="text-xs text-green-700">Achat transmis à Meta</span>
+                  ) : ['Confirmée', 'Expédiée', 'Livrée'].includes(order.status) ? (
+                    <span className="text-xs text-orange-700">Transmission non enregistrée — à vérifier</span>
+                  ) : (
+                    <span className="text-xs text-gray-500">Aucun achat transmis</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
