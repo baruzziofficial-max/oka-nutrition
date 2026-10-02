@@ -1,5 +1,6 @@
 'use client';
 
+import type { Locale } from '@/types/i18n';
 import React, { createContext, useContext, useState } from 'react';
 
 export type Offer = {
@@ -14,7 +15,8 @@ export type Offer = {
 type OrderContextType = {
   isOpen: boolean;
   selectedOffer: Offer | null;
-  openModal: (offer?: Offer) => void;
+  modalLocale: Locale | null;
+  openModal: (offer?: Offer, locale?: Locale) => void;
   closeModal: () => void;
 };
 
@@ -24,18 +26,22 @@ export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
-  const openModal = (offer?: Offer) => {
-    if (offer) setSelectedOffer(offer);
+  const [modalLocale, setModalLocale] = useState<Locale | null>(null);
+
+  const openModal = (offer?: Offer, locale?: Locale) => {
+    setSelectedOffer(offer ?? null);
+    setModalLocale(locale ?? null);
     setIsOpen(true);
   };
 
   const closeModal = () => {
     setIsOpen(false);
+    setModalLocale(null);
     setSelectedOffer(null);
   };
 
   return (
-    <OrderContext.Provider value={{ isOpen, selectedOffer, openModal, closeModal }}>
+    <OrderContext.Provider value={{ isOpen, selectedOffer, modalLocale, openModal, closeModal }}>
       {children}
     </OrderContext.Provider>
   );

@@ -3,6 +3,7 @@
 import { useOrder } from '@/context/OrderContext';
 import { useLocale } from '@/context/LocaleContext';
 import Image from 'next/image';
+import { dictionaries } from '@/lib/i18n/dictionaries';
 import { useState, useEffect, useRef } from 'react';
 
 type Offer = {
@@ -32,8 +33,10 @@ function trackMeta(eventName: string, params: Record<string, unknown>, eventId?:
 }
 
 export default function OrderModal() {
-  const { isOpen, selectedOffer, closeModal } = useOrder();
-  const { dict, locale } = useLocale();
+  const { isOpen, selectedOffer, modalLocale, closeModal } = useOrder();
+  const { locale: pageLocale } = useLocale();
+  const locale = modalLocale ?? pageLocale;
+  const dict = dictionaries[locale];
   const suffix = locale === 'ar' ? '-ar' : '';
   const [step, setStep] = useState<'offers' | 'form' | 'success'>('offers');
   const [chosenOffer, setChosenOffer] = useState<Offer | null>(null);
@@ -216,7 +219,7 @@ export default function OrderModal() {
       : 'Paiement à la livraison • Livraison gratuite • Confirmation rapide';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-blue-dark">
@@ -229,7 +232,7 @@ export default function OrderModal() {
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
-            aria-label="Fermer"
+            aria-label={locale === 'ar' ? 'إغلاق' : 'Fermer'}
           >
             ×
           </button>
