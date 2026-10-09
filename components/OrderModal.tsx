@@ -330,7 +330,7 @@ export default function OrderModal() {
                       ? 'دخل رقم هاتف مغربي صحيح، مثلاً 0612345678.'
                       : 'Saisissez un numéro marocain valide, ex. 0612345678.'}
                   </p>
-                )
+                )}
               </div>
 
               <div>
