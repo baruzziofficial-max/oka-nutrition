@@ -4,6 +4,7 @@ import { useOrder } from '@/context/OrderContext';
 import { useLocale } from '@/context/LocaleContext';
 import Image from 'next/image';
 import { dictionaries } from '@/lib/i18n/dictionaries';
+import { normalizeMoroccanPhone } from '@/lib/phone';
 import { useState, useEffect, useRef } from 'react';
 
 type Offer = {
@@ -42,6 +43,7 @@ export default function OrderModal() {
   const [chosenOffer, setChosenOffer] = useState<Offer | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [phoneTouched, setPhoneTouched] = useState(false);
   const trackedCheckoutOfferRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -96,6 +98,7 @@ export default function OrderModal() {
     setStep('offers');
     setChosenOffer(null);
     setFormData({ name: '', phone: '', city: '' });
+    setPhoneTouched(false);
     setIsSubmitting(false);
     setSubmitError('');
     trackedCheckoutOfferRef.current = null;
@@ -125,10 +128,11 @@ export default function OrderModal() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const normalizedPhone = normalizeMoroccanPhone(formData.phone);
   const isFormValid =
-    formData.name.trim() &&
-    formData.phone.trim() &&
-    formData.city.trim();
+    formData.name.trim().length >= 2 &&
+    Boolean(normalizedPhone) &&
+    formData.city.trim().length >= 2;
 
   const quantityFor = (offer: Offer) => (offer.id === 'offre-2' ? 3 : 1);
 
@@ -144,9 +148,9 @@ export default function OrderModal() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: formData.name,
-          phone: formData.phone,
-          city: formData.city,
+          name: formData.name.trim(),
+          phone: normalizedPhone,
+          city: formData.city.trim(),
           offerTitle: chosenOffer.title,
           offerDescription: chosenOffer.description,
           quantity,
@@ -311,11 +315,22 @@ export default function OrderModal() {
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
+                  dir="ltr"
+                  maxLength={24}
+                  aria-invalid={phoneTouched && Boolean(formData.phone.trim()) && !normalizedPhone}
                   value={formData.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
+                  onBlur={() => setPhoneTouched(true)}
                   placeholder={dict.orderModal.phonePlaceholder}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-bright"
                 />
+                {phoneTouched && formData.phone.trim() && !normalizedPhone && (
+                  <p className="mt-1 text-sm text-red-600" role="alert">
+                    {locale === 'ar'
+                      ? 'دخل رقم هاتف مغربي صحيح، مثلاً 0612345678.'
+                      : 'Saisissez un numéro marocain valide, ex. 0612345678.'}
+                  </p>
+                )}
               </div>
 
               <div>

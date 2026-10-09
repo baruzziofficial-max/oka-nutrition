@@ -116,6 +116,25 @@ export default function Hero() {
             {dict.hero.chooseCure}
           </h2>
 
+          {/* Both prices remain visible without requiring a horizontal swipe. */}
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:hidden">
+            {packs.map((pack) => (
+              <button
+                key={pack.id}
+                type="button"
+                onClick={() => openModal(pack)}
+                className={`rounded-xl border-2 bg-white px-3 py-3 text-center shadow-sm ${pack.isBestValue ? 'border-blue-bright' : 'border-gray-200'}`}
+              >
+                <span className="block text-sm font-semibold text-blue-dark">
+                  {pack.id === 'offre-2'
+                    ? (locale === 'ar' ? 'باك 3 شهور' : 'Cure 3 mois')
+                    : (locale === 'ar' ? 'علبة لشهر' : 'Cure 1 mois')}
+                </span>
+                <span className="mt-1 block text-xl font-extrabold text-blue-bright" dir="ltr">{pack.price} DH</span>
+              </button>
+            ))}
+          </div>
+
           <div className="mt-6 flex sm:grid sm:grid-cols-2 gap-3 sm:gap-8 max-w-3xl mx-auto overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-smooth -mx-4 px-4 sm:mx-auto sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {packs.map((pack) => (
               <div
