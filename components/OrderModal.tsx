@@ -219,8 +219,8 @@ export default function OrderModal() {
 
   const reassurance =
     locale === 'ar'
-      ? 'الدفع عند الاستلام • التوصيل مجاني • تأكيد سريع للطلب'
-      : 'Paiement à la livraison • Livraison gratuite • Confirmation rapide';
+      ? 'التوصيل مجاني • الدفع عند الاستلام'
+      : 'Livraison gratuite • Paiement à la réception';
 
   return (
     <div lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
