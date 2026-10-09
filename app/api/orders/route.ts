@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getCurrentRole } from '@/lib/auth';
+import { normalizeMoroccanPhone } from '@/lib/phone';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { name, phone, city, address, offerTitle, offerDescription, quantity, totalAmount } = body;
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ ok: false, error: 'Invalid request' }, { status: 400 });
+    }
 
-    if (!name || !phone || !city || !offerTitle || !totalAmount) {
-      return NextResponse.json({ ok: false, error: 'Missing fields' }, { status: 400 });
+    const { name, phone, city, address, offerTitle, offerDescription, quantity, totalAmount } = body;
+    if (
+      typeof name !== 'string' || name.trim().length < 2 ||
+      typeof city !== 'string' || city.trim().length < 2 ||
+      typeof offerTitle !== 'string' || !offerTitle.trim() ||
+      totalAmount == null
+    ) {
+      return NextResponse.json({ ok: false, error: 'Missing or invalid fields' }, { status: 400 });
+    }
+
+    const normalizedPhone = normalizeMoroccanPhone(phone);
+    if (!normalizedPhone) {
+      return NextResponse.json({ ok: false, error: 'Invalid Moroccan phone number' }, { status: 400 });
     }
 
     const normalizedQuantity = Number(quantity || 1);
@@ -21,9 +35,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Invalid offer' }, { status: 400 });
     }
 
-    const cleanName = String(name).trim().slice(0, 120);
-    const cleanPhone = String(phone).trim().slice(0, 30);
-    const cleanCity = String(city).trim().slice(0, 120);
+    const cleanName = name.trim().slice(0, 120);
+    const cleanPhone = normalizedPhone;
+    const cleanCity = city.trim().slice(0, 120);
     const cleanAddress = String(address || '').trim().slice(0, 500);
     const cleanOfferTitle = String(offerTitle).trim().slice(0, 160);
     const cleanOfferDescription = String(offerDescription || '').trim().slice(0, 240);
