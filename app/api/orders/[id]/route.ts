@@ -90,9 +90,22 @@ export async function PATCH(
 
     if (body.status === 'Confirmée') {
       try {
-        const metaOrder = await getOrderForMeta(id);
-        if (metaOrder && !metaOrder.meta_purchase_sent_at) {
-          await sendConfirmedOrderPurchase({
+        // Atomically claim this Purchase before calling Meta. Concurrent staff
+        // confirmations must never send the same order at the same time.
+        const claim = await sql`
+          UPDATE orders
+          SET meta_purchase_sent_at = now()
+          WHERE id = ${id}
+            AND status = 'Confirmée'
+            AND meta_purchase_sent_at IS NULL
+          RETURNING id;
+        `;
+        const claimed = claim.rows.length > 0;
+        if (claimed) {
+          try {
+            const metaOrder = await getOrderForMeta(id);
+            if (!metaOrder) throw new Error('Order missing after Purchase claim');
+            await sendConfirmedOrderPurchase({
             id: Number(metaOrder.id),
             name: String(metaOrder.name || ''),
             phone: String(metaOrder.phone || ''),
@@ -113,12 +126,13 @@ export async function PATCH(
               : null,
           });
 
-          await sql`
-            UPDATE orders
-            SET meta_purchase_sent_at = now()
-            WHERE id = ${id} AND meta_purchase_sent_at IS NULL;
-          `;
-          metaPurchaseSent = true;
+            metaPurchaseSent = true;
+          } catch (sendError) {
+            // A transport failure can be ambiguous (Meta may have accepted
+            // the event). Preserve the claim to avoid automatic duplicates;
+            // surface the error for manual reconciliation with Meta.
+            throw sendError;
+          }
         }
       } catch (error) {
         metaError = error instanceof Error ? error.message : 'Meta Purchase failed';
